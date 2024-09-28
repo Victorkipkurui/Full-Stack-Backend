@@ -4,8 +4,8 @@ POST http://localhost:3001/api/persons
 Content-Type: application/json
 
 {
-  "name": "wrfsrtdi",
-  "number": "118d9-7014"
+  "name": "w7fsrtdi",
+  "number": "251-789624"
 }
 ###
 GET  http://localhost:3001/api/persons
