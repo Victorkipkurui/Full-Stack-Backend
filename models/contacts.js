@@ -7,7 +7,7 @@ if (!url) {
   console.error('MONGODB_URI environment variable is not defined!')
   process.exit(1)
 }
-console.log('connecting to ', url)
+console.log('connecting to', url)
 
 mongoose.connect(url)
   .then(() => {
