@@ -1,24 +1,38 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
-const url = process.env.MONGODB_URI;
+mongoose.set('strictQuery', false)
+
+const url = process.env.MONGODB_URI
 if (!url) {
-  console.error('MONGODB_URI environment variable is not defined!');
-  process.exit(1);
+  console.error('MONGODB_URI environment variable is not defined!')
+  process.exit(1)
 }
 console.log('connecting to ', url)
 
 mongoose.connect(url)
-.then(result => {
-  console.log('connected to MongoDB')
-})
-.catch(error => {
-  console.log('error connecting to MongoDB:', error.message)
-})
+  .then(() => {
+    console.log('connected to MongoDB')
+  })
+  .catch(error => {
+    console.log('error connecting to MongoDB:', error.message)
+  })
 
 const personSchema = new mongoose.Schema({
-  name: String,
-  number: String,
-});
+  name: {
+    type: String,
+    minLength: 3,
+  },
+  number: {
+    type: String,
+    validate: {
+      validator: function(v) {
+        return /^(\d{2,3})-\d{5,}$/.test(v)
+      },
+      message: props => `${props.value} is not a valid phone number!`
+    },
+    required: [true, 'User phone number required']
+  },
+})
 
 personSchema.set('toJSON', {
   transform: (document, returnedObject) => {
@@ -28,30 +42,6 @@ personSchema.set('toJSON', {
   }
 })
 
-const Person = mongoose.model('Person', personSchema);
+const Person = mongoose.model('Person', personSchema)
 
-const addPerson = async (name, number) => {
-  try {
-    const person = new Person({ name, number });
-    const savedPerson = await person.save();
-    console.log(`Added new person: ${savedPerson.name}, ${savedPerson.number}`);
-  } catch (error) {
-    console.error('Error adding person:', error.message);
-  } finally {
-    await mongoose.connection.close();
-  }
-};
-
-const listPersons = async () => {
-  try {
-    const results = await Person.find({});
-    console.log('Phonebook:');
-    results.forEach((person) => console.log(`${person.name} ${person.number}`));
-  } catch (error) {
-    console.error('Error fetching entries:', error.message);
-  } finally {
-    await mongoose.connection.close();
-  }
-};
-
-module.exports = {Person}
+module.exports = { Person }

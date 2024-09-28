@@ -1,13 +1,17 @@
-DELETE http://localhost:3001/api/persons/66f7ff4a0cb0b152917ce41b
+DELETE http://localhost:3001/api/persons/66f7c63e04a0692a7e3bee12
 ###
 POST http://localhost:3001/api/persons
 Content-Type: application/json
 
 {
-  "name": "Kpfcserdi",
-  "number": "048-3189-7"
+  "name": "wrfsrtdi",
+  "number": "118d9-7014"
 }
 ###
 GET  http://localhost:3001/api/persons
 ###
-GET http://localhost:3001/api/persons/66f7ff4a0cb0b152917ce41b
+GET http://localhost:3001/api/persons/66f802b13f81b4c3756
+###
+GET http://localhost:3001/info
+###
+PUT http://localhost:3001/api/persons/66f7c63e04a0692a7e3bee12

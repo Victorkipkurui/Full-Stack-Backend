@@ -1,112 +1,113 @@
 require('dotenv').config()
-const {Person} = require('./models/contacts')
-const express = require('express');
-const morgan = require('morgan');
-const app = express();
+const { Person } = require('./models/contacts')
+const express = require('express')
+const morgan = require('morgan')
+const app = express()
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message)
 
-app.use(express.json());
-app.use(morgan('tiny'));
+  if (error.name === 'CastError') {
+    return res.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
+  }
+  next(error)
+}
+
+app.use(express.json())
+app.use(morgan('tiny'))
 
 morgan.token('body', (req) => {
-  return JSON.stringify(req.body);
-});
-
-app.use(morgan(':method :url :status - :response-time ms - Body: :body'));
-
-let persons = [
-  { 
-    "id": "1",
-    "name": "Arto Hellas", 
-    "number": "040-123456"
-  },
-  { 
-    "id": "2",
-    "name": "Ada Lovelace", 
-    "number": "39-44-5323523"
-  },
-  { 
-    "id": "3",
-    "name": "Dan Abramov", 
-    "number": "12-43-234345"
-  },
-  { 
-    "id": "4",
-    "name": "Mary Poppendieck", 
-    "number": "39-23-6423122"
-  }
-]
-app.get('/', (req, res) => {
-  res.send('Welcome to Phonebook!');
-});
-
-app.get('/api/persons', async (req, res) => {
-  try {
-    const persons = await Person.find({});
-    res.status(200).json(persons);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/persons/:id', (request, response) => {
-  Person.findById(request.params.id).then(person => {
-    response.json(person)
-  })
-});
-
-app.get('/info', (request, response) => {
-  const now = new Date();
-  response.send(`phonebook has info for ${persons.length} people <br/> ${now}`)
+  return JSON.stringify(req.body)
 })
 
-app.delete('/api/persons/:id', async (request, response) => {
-  const id = request.params.id;
+app.use(morgan(':method :url :status - :response-time ms - Body: :body'))
+
+app.get('/', (req, res) => {
+  res.send('Welcome to Phonebook!')
+})
+
+app.get('/api/persons', async (req, res, next) => {
   try {
-    const deletedPerson = await Person.findByIdAndDelete(id);
+    const persons = await Person.find({})
+    res.status(200).json(persons)
+  } catch (error) { next(error)}
+})
 
-    if (!deletedPerson) {
-      return response.status(404).json({ error: 'Person not found' });
-    }
-    response.status(204).end();
-  } catch (error) {
-    console.error('Error deleting person:', error.message);
-    response.status(500).json({ error: 'Something went wrong' });
-  }
-});
+app.put('/api/persons/:id', (req, res, next) => {
+  const { name, number } = req.body
+  Person.findByIdAndUpdate(req.params.id,{ name, number },
+    { new: true, runValidators: true, context: 'query' })
+    .then(updatedPerson => {
+      res.json(updatedPerson)
+    })
+    .catch(error => next(error))
+})
 
-app.post('/api/persons', async (request, response) => {
-  const body = request.body;
+app.get('/api/persons/:id', (req, res, next) => {
+  Person.findById(req.params.id)
+    .then(person => {
+      if (person) {
+        res.json(person)
+      } else {
+        res.status(404).json({ error: 'page does not exist' })
+      }
+    })
+    .catch(error => next(error))
+})
+
+app.get('/info', (req, res, next) => {
+  Person.countDocuments()
+    .then(count => {
+      const now = new Date()
+      res.send(`Phonebook has info for ${count} people <br/> ${now}`)
+    })
+    .catch(error => next(error))
+})
+
+app.delete('/api/persons/:id', async (req, res, next) => {
+  Person.findByIdAndDelete(req.params.id)
+    .then(() => {
+      res.status(204).end()
+    })
+    .catch(error => next(error))
+})
+
+app.post('/api/persons', async (req, res) => {
+  const body = req.body
 
   if (!body.name || !body.number) {
-    return response.status(400).json({ error: 'value cannot be empty' });
+    return res.status(400).json({ error: 'value cannot be empty' })
   }
   try {
-    const nameExists = await Person.findOne({ name: body.name });
-    const numberExists = await Person.findOne({ number: body.number });
+    const nameExists = await Person.findOne({ name: body.name })
+    const numberExists = await Person.findOne({ number: body.number })
 
     if (nameExists) {
-      return response.status(400).json({ error: 'Name already exists' });
+      return res.status(400).json({ error: 'Name already exists' })
     }
 
     if (numberExists) {
-      return response.status(400).json({ error: 'Number already exists' });
+      return res.status(400).json({ error: 'Number already exists' })
     }
     const person = new Person({
       name: body.name,
       number: body.number,
-    });
+    })
 
-    const savedPerson = await person.save();
+    const savedPerson = await person.save()
 
-    response.json(savedPerson);
+    res.json(savedPerson)
   } catch (error) {
-    console.error('Error saving person:', error.message);
-    response.status(500).json({ error: 'Something went wrong' });
+    console.error('Error saving person:', error.message)
+    res.status(500).json({ error: 'Something went wrong' })
   }
-});
+})
+
+app.use(errorHandler)
 
 
-const PORT = process.env.PORT
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
