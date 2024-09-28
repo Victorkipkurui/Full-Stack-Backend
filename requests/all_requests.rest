@@ -1,14 +1,13 @@
-DELETE http://localhost:3001/api/persons/66f7fc09514ffc77911efdfa
-
+DELETE http://localhost:3001/api/persons/66f7ff4a0cb0b152917ce41b
 ###
 POST http://localhost:3001/api/persons
 Content-Type: application/json
 
 {
-  "name": "Kpfcdi",
-  "number": "048-31-7"
+  "name": "Kpfcserdi",
+  "number": "048-3189-7"
 }
 ###
 GET  http://localhost:3001/api/persons
 ###
-GET http://localhost:3001/api/persons/1
+GET http://localhost:3001/api/persons/66f7ff4a0cb0b152917ce41b

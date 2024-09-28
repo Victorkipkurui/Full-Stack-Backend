@@ -54,8 +54,4 @@ const listPersons = async () => {
   }
 };
 
-module.exports = {
-  addPerson,
-  listPersons,
-  Person,
-}
+module.exports = {Person}

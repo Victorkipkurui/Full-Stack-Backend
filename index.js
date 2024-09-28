@@ -1,5 +1,5 @@
 require('dotenv').config()
-const {listPersons, Person} = require('./models/contacts')
+const {Person} = require('./models/contacts')
 const express = require('express');
 const morgan = require('morgan');
 const app = express();
@@ -39,14 +39,15 @@ app.get('/', (req, res) => {
   res.send('Welcome to Phonebook!');
 });
 
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', async (req, res) => {
   try {
-    const persons = listPersons();
+    const persons = await Person.find({});
     res.status(200).json(persons);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-})
+});
+
 app.get('/api/persons/:id', (request, response) => {
   Person.findById(request.params.id).then(person => {
     response.json(person)
