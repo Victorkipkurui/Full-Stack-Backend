@@ -1,3 +1,5 @@
+require('dotenv').config()
+const {listPersons, Person} = require('./models/contacts')
 const express = require('express');
 const morgan = require('morgan');
 const app = express();
@@ -37,19 +39,18 @@ app.get('/', (req, res) => {
   res.send('Welcome to Phonebook!');
 });
 
-app.get('/api/persons', (request, response) => {
-  response.json(persons)
-});
-
-app.get('/api/persons/:id', (request, response) => {
-  const id = request.params.id
-  const person = persons.find(person => person.id === id)
-
-  if (person) {
-    response.json(person)
-  } else {
-    response.status(404).end();
+app.get('/api/persons', (req, res) => {
+  try {
+    const persons = listPersons();
+    res.status(200).json(persons);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
+})
+app.get('/api/persons/:id', (request, response) => {
+  Person.findById(request.params.id).then(person => {
+    response.json(person)
+  })
 });
 
 app.get('/info', (request, response) => {
@@ -57,52 +58,54 @@ app.get('/info', (request, response) => {
   response.send(`phonebook has info for ${persons.length} people <br/> ${now}`)
 })
 
-app.delete('/api/persons/:id', (request, response) => {
-  const id = request.params.id
-  persons = persons.filter(person => person.id !== id)
+app.delete('/api/persons/:id', async (request, response) => {
+  const id = request.params.id;
+  try {
+    const deletedPerson = await Person.findByIdAndDelete(id);
 
-  response.status(204).end()
-})
+    if (!deletedPerson) {
+      return response.status(404).json({ error: 'Person not found' });
+    }
+    response.status(204).end();
+  } catch (error) {
+    console.error('Error deleting person:', error.message);
+    response.status(500).json({ error: 'Something went wrong' });
+  }
+});
 
-const generateUniqueId =()=> {
-  return Math.random().toString(36).substr(2, 9);
-}
-
-app.post('/api/persons', (request, response) => {
-  const body = request.body
-  const nameExists = persons.some(person => person.name === body.name);
-  const numberExists = persons.some(person => person.number === body.number);
+app.post('/api/persons', async (request, response) => {
+  const body = request.body;
 
   if (!body.name || !body.number) {
-    return response.status(400).json({ 
-      error: 'value cannot be empty' 
-    })
+    return response.status(400).json({ error: 'value cannot be empty' });
   }
+  try {
+    const nameExists = await Person.findOne({ name: body.name });
+    const numberExists = await Person.findOne({ number: body.number });
 
-  if (nameExists) {
-    return response.status(400).json({ 
-      error: 'Name already exists' 
+    if (nameExists) {
+      return response.status(400).json({ error: 'Name already exists' });
+    }
+
+    if (numberExists) {
+      return response.status(400).json({ error: 'Number already exists' });
+    }
+    const person = new Person({
+      name: body.name,
+      number: body.number,
     });
+
+    const savedPerson = await person.save();
+
+    response.json(savedPerson);
+  } catch (error) {
+    console.error('Error saving person:', error.message);
+    response.status(500).json({ error: 'Something went wrong' });
   }
+});
 
-  if (numberExists) {
-    return response.status(400).json({ 
-      error: 'Number already exists' 
-    });
-  }
- 
-  const person = {
-    name : body.name,
-    number: body.number,
-    id: generateUniqueId(),
-  }
 
-  persons = persons.concat(person)
-
-  response.json(person)
-})
-
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
